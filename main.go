@@ -44,9 +44,7 @@ func main() {
 		}
 		fmt.Println("New client connected:", conn.RemoteAddr())
 		clients = append(clients, conn)
-		fmt.Println(clients)
 		go handleRequest(conn, &clients)
-		fmt.Println(clients, "ok")
 	}
 }
 
@@ -58,6 +56,7 @@ func handleRequest(conn net.Conn, clients *[]net.Conn) {
 			fmt.Println("Client", conn.RemoteAddr(), "disconnected")
 			conn.Close()
 			clients = RemoveConn(clients, conn)
+			fmt.Println("this is the clients", clients)
 			break
 		}
 		fmt.Print(message)
