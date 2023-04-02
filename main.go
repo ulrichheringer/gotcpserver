@@ -13,17 +13,14 @@ const (
 	port      = "8080"
 )
 
-func RemoveConn(slice *[]net.Conn, conn net.Conn) *[]net.Conn {
+func RemoveConn(slice []net.Conn, conn net.Conn) []net.Conn {
 	var indexToRemove int
-	for i, s := range *slice {
+	for i, s := range slice {
 		if s == conn {
-			fmt.Println("tá certo")
 			indexToRemove = i
 		}
 	}
-	slice2 := *slice
-	slice2 = append(slice2[:indexToRemove], slice2[indexToRemove+1:]...)
-	return &slice2
+	return append(slice[:indexToRemove], slice[indexToRemove+1:]...)
 }
 
 func main() {
@@ -44,6 +41,7 @@ func main() {
 		}
 		fmt.Println("New client connected:", conn.RemoteAddr())
 		clients = append(clients, conn)
+		fmt.Println(clients)
 		go handleRequest(conn, &clients)
 	}
 }
@@ -55,7 +53,7 @@ func handleRequest(conn net.Conn, clients *[]net.Conn) {
 		if err != nil {
 			fmt.Println("Client", conn.RemoteAddr(), "disconnected")
 			conn.Close()
-			clients = RemoveConn(clients, conn)
+			*clients = RemoveConn(*clients, conn)
 			fmt.Println("this is the clients", clients)
 			break
 		}
