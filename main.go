@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strconv"
+	"strings"
 )
 
 const (
@@ -41,7 +43,6 @@ func main() {
 		}
 		fmt.Println("New client connected:", conn.RemoteAddr())
 		clients = append(clients, conn)
-		fmt.Println(clients)
 		go handleRequest(conn, &clients)
 	}
 }
@@ -51,13 +52,42 @@ func handleRequest(conn net.Conn, clients *[]net.Conn) {
 		reader := bufio.NewReader(conn)
 		message, err := reader.ReadString('\n')
 		if err != nil {
-			fmt.Println("Client", conn.RemoteAddr(), "disconnected")
 			conn.Close()
+			fmt.Println("Client", conn.RemoteAddr(), "disconnected")
 			*clients = RemoveConn(*clients, conn)
-			fmt.Println("this is the clients", clients)
 			break
 		}
-		fmt.Print(message)
-		conn.Write([]byte("Message received: " + message))
+		// == Treating the message ==
+		rNL := strings.ReplaceAll(message, "\n", "")
+		rT := strings.ReplaceAll(rNL, "\t", "")
+		rR := strings.ReplaceAll(rT, "\r", "")
+		fUnquoted := strings.ReplaceAll(rR, "\b", "")
+		// ==========================
+		if fUnquoted == "show" {
+			clientsLength := strconv.Itoa(len(*clients))
+			clientsStr := fmt.Sprintf("%d\n", clients)
+			conn.Write([]byte("Found " + clientsLength + " clients: " + clientsStr))
+		} else if strings.HasPrefix(fUnquoted, "send") {
+			if len(*clients) > 1 {
+				send := strings.Fields(message)
+				if len(send) > 2 {
+					addr := send[1]
+					for _, c := range *clients {
+						if c.RemoteAddr().String() == addr {
+							message := strings.Join(send[2:], " ")
+							c.Write([]byte(conn.RemoteAddr().String() + " sent you a message: " + message + "\n"))
+							break
+						}
+					}
+					conn.Write([]byte("Client not found!\n"))
+				} else {
+					conn.Write([]byte("Wrong format! Please use: send 'addr(ip:port)'. Example: send 127.0.0.1:56120\n"))
+				}
+			} else {
+				fmt.Println("not enough clients")
+			}
+		} else {
+			conn.Write([]byte("Command not found.\n"))
+		}
 	}
 }
