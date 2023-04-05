@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"time"
 )
 
 const (
@@ -27,7 +28,7 @@ func RemoveConn(slice []net.Conn, conn net.Conn) []net.Conn {
 func main() {
 	ln, err := net.Listen(conn_type, host+":"+port)
 	if err != nil {
-		fmt.Println("Error when listening: ", err.Error())
+		fmt.Println("Error when trying to start listening: ", err.Error())
 		os.Exit(1)
 	}
 	defer ln.Close()
@@ -41,7 +42,8 @@ func main() {
 			fmt.Println("Error while accepting: ", err.Error())
 			os.Exit(1)
 		}
-		fmt.Println("New client connected:", conn.RemoteAddr())
+		timeLog := time.Now().Format(time.RFC822)
+		fmt.Println(timeLog, "New client connected:", conn.RemoteAddr())
 		clients = append(clients, conn)
 		go handleRequest(conn, &clients, &names)
 	}
@@ -117,7 +119,7 @@ main:
 						}
 					}
 					(*names)[name] = userIp
-					conn.Write([]byte("Você foi registrado com sucesso!\n"))
+					conn.Write([]byte("You were sucessfully registered!\n"))
 				}
 			}
 		} else if fUnquoted == "/users" {
