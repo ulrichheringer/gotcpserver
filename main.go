@@ -15,6 +15,7 @@ const (
 	port      = "8080"
 )
 
+// Removes Connection from Array
 func RemoveConn(slice []net.Conn, conn net.Conn) []net.Conn {
 	var indexToRemove int
 	for i, s := range slice {
@@ -34,7 +35,9 @@ func main() {
 	defer ln.Close()
 	fmt.Println("Listening on " + host + ":" + port)
 
+	// Clients Array, contains: Ip, and conn reference
 	clients := []net.Conn{}
+	// Registered names from clients
 	names := make(map[string]string)
 	for {
 		conn, err := ln.Accept()
@@ -44,7 +47,9 @@ func main() {
 		}
 		timeLog := time.Now().Format(time.RFC822)
 		fmt.Println(timeLog, "New client connected:", conn.RemoteAddr())
+		// Adds client to the array
 		clients = append(clients, conn)
+		// Receives commands
 		go handleRequest(conn, &clients, &names)
 	}
 }
@@ -52,9 +57,11 @@ func main() {
 func handleRequest(conn net.Conn, clients *[]net.Conn, names *map[string]string) {
 main:
 	for {
+		// Reads incoming messages
 		reader := bufio.NewReader(conn)
 		message, err := reader.ReadString('\n')
 		if err != nil {
+			// If error, closes connection and removes client from array
 			conn.Close()
 			fmt.Println("Client", conn.RemoteAddr(), "disconnected")
 			*clients = RemoveConn(*clients, conn)
@@ -66,11 +73,13 @@ main:
 			break
 		}
 		// == Treating the message ==
+		// Removes all \n, \r, \t, \b from the message for better support
 		rNL := strings.ReplaceAll(message, "\n", "")
 		rT := strings.ReplaceAll(rNL, "\t", "")
 		rR := strings.ReplaceAll(rT, "\r", "")
 		fUnquoted := strings.ReplaceAll(rR, "\b", "")
 		// ==========================
+		// Send command, syntax: /send (name of whom you wanna send a message) (message)
 		if strings.HasPrefix(fUnquoted, "/send") {
 			if len(*clients) > 1 {
 				send := strings.Fields(message)
@@ -105,6 +114,7 @@ main:
 			} else {
 				fmt.Println("not enough clients")
 			}
+			// Register a name for the client
 		} else if strings.HasPrefix(fUnquoted, "/register") {
 			if len(strings.Fields(fUnquoted)) > 1 {
 				name := strings.Fields(fUnquoted)[1]
@@ -122,6 +132,7 @@ main:
 					conn.Write([]byte("You were sucessfully registered!\n"))
 				}
 			}
+			// Command to show all registered users
 		} else if fUnquoted == "/users" {
 			var users []string
 			for key := range *names {
